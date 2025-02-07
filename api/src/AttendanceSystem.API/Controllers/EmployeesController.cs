@@ -11,10 +11,12 @@ namespace AttendanceSystem.API.Controllers;
 public class EmployeesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _env;
 
-    public EmployeesController(AppDbContext db)
+    public EmployeesController(AppDbContext db, IWebHostEnvironment env)
     {
         _db = db;
+        _env = env;
     }
 
     [HttpGet]
@@ -56,17 +58,36 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<EmployeeDto>> Create([FromBody] CreateEmployeeDto dto)
+    public async Task<ActionResult<EmployeeDto>> Create(
+        [FromForm] string name,
+        [FromForm] string? email,
+        [FromForm] string faceDescriptor,
+        IFormFile? photo)
     {
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
-            Name = dto.Name,
-            Email = dto.Email,
-            FaceDescriptor = dto.FaceDescriptor,
-            PhotoPath = string.Empty,
+            Name = name,
+            Email = email,
+            FaceDescriptor = faceDescriptor,
             CreatedAt = DateTime.UtcNow
         };
+
+        if (photo is not null && photo.Length > 0)
+        {
+            var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads", "photos");
+            Directory.CreateDirectory(uploadsDir);
+
+            var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension)) extension = ".jpg";
+            var fileName = $"{employee.Id}{extension}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await photo.CopyToAsync(stream);
+
+            employee.PhotoPath = $"/uploads/photos/{fileName}";
+        }
 
         _db.Employees.Add(employee);
         await _db.SaveChangesAsync();
@@ -83,17 +104,38 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<EmployeeDto>> Update(Guid id, [FromBody] UpdateEmployeeDto dto)
+    public async Task<ActionResult<EmployeeDto>> Update(
+        Guid id,
+        [FromForm] string name,
+        [FromForm] string? email,
+        [FromForm] string? faceDescriptor,
+        IFormFile? photo)
     {
         var employee = await _db.Employees.FindAsync(id);
         if (employee is null || !employee.IsActive)
             return NotFound();
 
-        employee.Name = dto.Name;
-        employee.Email = dto.Email;
+        employee.Name = name;
+        employee.Email = email;
 
-        if (!string.IsNullOrEmpty(dto.FaceDescriptor))
-            employee.FaceDescriptor = dto.FaceDescriptor;
+        if (!string.IsNullOrEmpty(faceDescriptor))
+            employee.FaceDescriptor = faceDescriptor;
+
+        if (photo is not null && photo.Length > 0)
+        {
+            var uploadsDir = Path.Combine(_env.ContentRootPath, "uploads", "photos");
+            Directory.CreateDirectory(uploadsDir);
+
+            var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension)) extension = ".jpg";
+            var fileName = $"{employee.Id}{extension}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await photo.CopyToAsync(stream);
+
+            employee.PhotoPath = $"/uploads/photos/{fileName}";
+        }
 
         await _db.SaveChangesAsync();
 
