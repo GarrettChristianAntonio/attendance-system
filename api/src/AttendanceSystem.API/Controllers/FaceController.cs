@@ -1,4 +1,6 @@
+using AttendanceSystem.API.Data;
 using AttendanceSystem.API.DTOs;
+using AttendanceSystem.API.Models;
 using AttendanceSystem.API.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +11,12 @@ namespace AttendanceSystem.API.Controllers;
 public class FaceController : ControllerBase
 {
     private readonly FaceMatchingService _matchingService;
+    private readonly AppDbContext _db;
 
-    public FaceController(FaceMatchingService matchingService)
+    public FaceController(FaceMatchingService matchingService, AppDbContext db)
     {
         _matchingService = matchingService;
+        _db = db;
     }
 
     [HttpPost("match")]
@@ -22,6 +26,19 @@ public class FaceController : ControllerBase
             return BadRequest("Descriptor must be a 128-float array");
 
         var result = await _matchingService.FindMatchAsync(dto.Descriptor);
+
+        if (result.IsMatch && result.Employee is not null)
+        {
+            var record = new AttendanceRecord
+            {
+                Id = Guid.NewGuid(),
+                EmployeeId = result.Employee.Id,
+                CheckInAt = DateTime.UtcNow,
+                Confidence = result.Distance
+            };
+            _db.AttendanceRecords.Add(record);
+            await _db.SaveChangesAsync();
+        }
 
         return Ok(new MatchResponseDto
         {

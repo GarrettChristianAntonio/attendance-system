@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,6 +19,14 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(200);
             entity.Property(e => e.PhotoPath).IsRequired();
             entity.Property(e => e.FaceDescriptor).IsRequired();
+        });
+
+        modelBuilder.Entity<AttendanceRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Employee)
+                .WithMany()
+                .HasForeignKey(e => e.EmployeeId);
         });
     }
 }
