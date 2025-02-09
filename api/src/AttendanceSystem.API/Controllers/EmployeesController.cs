@@ -30,7 +30,7 @@ public class EmployeesController : ControllerBase
                 Id = e.Id,
                 Name = e.Name,
                 Email = e.Email,
-                PhotoUrl = e.PhotoPath,
+                PhotoUrl = string.IsNullOrEmpty(e.PhotoPath) ? null : e.PhotoPath,
                 IsActive = e.IsActive,
                 CreatedAt = e.CreatedAt
             })
@@ -51,7 +51,7 @@ public class EmployeesController : ControllerBase
             Id = employee.Id,
             Name = employee.Name,
             Email = employee.Email,
-            PhotoUrl = employee.PhotoPath,
+            PhotoUrl = string.IsNullOrEmpty(employee.PhotoPath) ? null : employee.PhotoPath,
             IsActive = employee.IsActive,
             CreatedAt = employee.CreatedAt
         });
@@ -64,6 +64,12 @@ public class EmployeesController : ControllerBase
         [FromForm] string faceDescriptor,
         IFormFile? photo)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return BadRequest(new { error = "Name is required" });
+
+        if (string.IsNullOrWhiteSpace(faceDescriptor))
+            return BadRequest(new { error = "Face descriptor is required" });
+
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
@@ -97,7 +103,7 @@ public class EmployeesController : ControllerBase
             Id = employee.Id,
             Name = employee.Name,
             Email = employee.Email,
-            PhotoUrl = employee.PhotoPath,
+            PhotoUrl = string.IsNullOrEmpty(employee.PhotoPath) ? null : employee.PhotoPath,
             IsActive = employee.IsActive,
             CreatedAt = employee.CreatedAt
         });
@@ -144,7 +150,7 @@ public class EmployeesController : ControllerBase
             Id = employee.Id,
             Name = employee.Name,
             Email = employee.Email,
-            PhotoUrl = employee.PhotoPath,
+            PhotoUrl = string.IsNullOrEmpty(employee.PhotoPath) ? null : employee.PhotoPath,
             IsActive = employee.IsActive,
             CreatedAt = employee.CreatedAt
         });
