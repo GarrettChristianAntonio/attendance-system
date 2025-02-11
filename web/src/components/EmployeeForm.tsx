@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import { loadModels, detectSingleFace } from "@/lib/face-api-setup";
-import { apiPostForm, getPhotoUrl } from "@/lib/api";
+import { loadModels, detectFaces } from "@/lib/face-api-setup";
+import { apiPostForm } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 interface EmployeeDto {
@@ -61,12 +61,19 @@ export default function EmployeeForm() {
     if (!videoRef.current || !canvasRef.current || !modelsReady) return;
 
     setStatus("Detecting face...");
-    const desc = await detectSingleFace(videoRef.current);
+    const result = await detectFaces(videoRef.current);
 
-    if (!desc) {
+    if (!result) {
       setStatus("No face detected. Please face the camera and try again.");
       return;
     }
+
+    if (result.faceCount > 1) {
+      setStatus("Multiple faces detected. Please ensure only one face is visible.");
+      return;
+    }
+
+    const desc = result.descriptor;
 
     const canvas = canvasRef.current;
     canvas.width = videoRef.current.videoWidth;
