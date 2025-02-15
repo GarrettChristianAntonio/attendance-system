@@ -5,6 +5,8 @@ import { loadModels, detectFaces } from "@/lib/face-api-setup";
 import { apiPost } from "@/lib/api";
 import CheckInResult from "./CheckInResult";
 
+const COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 interface MatchResponse {
   isMatch: boolean;
   employeeId: string | null;
@@ -20,6 +22,7 @@ interface MatchResult {
   photoUrl: string | null;
   distance: number;
   timestamp: Date;
+  cooldown?: boolean;
 }
 
 export default function CameraFeed() {
@@ -34,6 +37,7 @@ export default function CameraFeed() {
   const detectingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cooldownMap = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     loadModels()
@@ -68,6 +72,12 @@ export default function CameraFeed() {
     };
   }, [modelsReady]);
 
+  const isOnCooldown = (employeeId: string): boolean => {
+    const lastTime = cooldownMap.current.get(employeeId);
+    if (!lastTime) return false;
+    return Date.now() - lastTime < COOLDOWN_MS;
+  };
+
   const runDetection = useCallback(async () => {
     if (!videoRef.current || !cameraReady || detectingRef.current) return;
 
@@ -93,6 +103,23 @@ export default function CameraFeed() {
       const response = await apiPost<MatchResponse>("/api/face/match", {
         descriptor: Array.from(result.descriptor),
       });
+
+      if (response.isMatch && response.employeeId) {
+        if (isOnCooldown(response.employeeId)) {
+          setLastResult({
+            isMatch: true,
+            employeeName: response.employeeName,
+            employeeId: response.employeeId,
+            photoUrl: response.photoUrl,
+            distance: response.distance,
+            timestamp: new Date(),
+            cooldown: true,
+          });
+          return;
+        }
+
+        cooldownMap.current.set(response.employeeId, Date.now());
+      }
 
       setLastResult({
         isMatch: response.isMatch,
@@ -187,13 +214,20 @@ export default function CameraFeed() {
 
       {lastResult && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-80">
-          <CheckInResult
-            isMatch={lastResult.isMatch}
-            employeeName={lastResult.employeeName}
-            photoUrl={lastResult.photoUrl}
-            distance={lastResult.distance}
-            timestamp={lastResult.timestamp}
-          />
+          {lastResult.cooldown ? (
+            <div className="bg-blue-600/80 text-white rounded-xl p-4 text-center">
+              <p className="text-lg font-medium">Ya registrado</p>
+              <p className="text-sm opacity-80">{lastResult.employeeName}</p>
+            </div>
+          ) : (
+            <CheckInResult
+              isMatch={lastResult.isMatch}
+              employeeName={lastResult.employeeName}
+              photoUrl={lastResult.photoUrl}
+              distance={lastResult.distance}
+              timestamp={lastResult.timestamp}
+            />
+          )}
         </div>
       )}
     </div>

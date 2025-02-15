@@ -3,6 +3,7 @@ using AttendanceSystem.API.DTOs;
 using AttendanceSystem.API.Models;
 using AttendanceSystem.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AttendanceSystem.API.Controllers;
 
@@ -12,6 +13,7 @@ public class FaceController : ControllerBase
 {
     private readonly FaceMatchingService _matchingService;
     private readonly AppDbContext _db;
+    private static readonly TimeSpan CooldownPeriod = TimeSpan.FromMinutes(5);
 
     public FaceController(FaceMatchingService matchingService, AppDbContext db)
     {
@@ -29,15 +31,22 @@ public class FaceController : ControllerBase
 
         if (result.IsMatch && result.Employee is not null)
         {
-            var record = new AttendanceRecord
+            var cooldownThreshold = DateTime.UtcNow - CooldownPeriod;
+            var recentCheckIn = await _db.AttendanceRecords
+                .AnyAsync(a => a.EmployeeId == result.Employee.Id && a.CheckInAt > cooldownThreshold);
+
+            if (!recentCheckIn)
             {
-                Id = Guid.NewGuid(),
-                EmployeeId = result.Employee.Id,
-                CheckInAt = DateTime.UtcNow,
-                Confidence = result.Distance
-            };
-            _db.AttendanceRecords.Add(record);
-            await _db.SaveChangesAsync();
+                var record = new AttendanceRecord
+                {
+                    Id = Guid.NewGuid(),
+                    EmployeeId = result.Employee.Id,
+                    CheckInAt = DateTime.UtcNow,
+                    Confidence = result.Distance
+                };
+                _db.AttendanceRecords.Add(record);
+                await _db.SaveChangesAsync();
+            }
         }
 
         return Ok(new MatchResponseDto

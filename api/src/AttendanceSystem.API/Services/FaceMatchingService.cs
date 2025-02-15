@@ -15,7 +15,7 @@ public class FaceMatchResult
 public class FaceMatchingService
 {
     private readonly AppDbContext _db;
-    private const double MatchThreshold = 0.6;
+    private const double MatchThreshold = 0.55;
 
     public FaceMatchingService(AppDbContext db)
     {
