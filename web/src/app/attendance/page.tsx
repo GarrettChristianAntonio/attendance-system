@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { apiFetch, getPhotoUrl } from "@/lib/api";
 
 interface AttendanceRecord {
@@ -10,6 +10,26 @@ interface AttendanceRecord {
   photoUrl: string | null;
   checkInAt: string;
   confidence: number;
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  color: string;
+}) {
+  return (
+    <div className={`rounded-xl border p-4 ${color}`}>
+      <p className="text-sm font-medium opacity-70">{label}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
+      {sub && <p className="text-xs opacity-60 mt-0.5">{sub}</p>}
+    </div>
+  );
 }
 
 function SkeletonRow() {
@@ -57,6 +77,27 @@ export default function AttendancePage() {
     fetchRecords();
   }, [date]);
 
+  const stats = useMemo(() => {
+    if (records.length === 0) return null;
+    const uniqueEmployees = new Set(records.map((r) => r.employeeId)).size;
+    const avgConfidence =
+      records.reduce((sum, r) => sum + Math.max(0, (1 - r.confidence) * 100), 0) /
+      records.length;
+    const firstCheckIn = records.length > 0
+      ? new Date(records[records.length - 1].checkInAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "-";
+    const lastCheckIn = records.length > 0
+      ? new Date(records[0].checkInAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "-";
+    return { uniqueEmployees, avgConfidence, firstCheckIn, lastCheckIn };
+  }, [records]);
+
   return (
     <div className="py-6 sm:py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -76,6 +117,35 @@ export default function AttendancePage() {
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
           />
         </div>
+
+        {!loading && stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <StatCard
+              label="Employees"
+              value={stats.uniqueEmployees}
+              sub="unique today"
+              color="bg-blue-50 border-blue-100 text-blue-900"
+            />
+            <StatCard
+              label="Check-ins"
+              value={records.length}
+              sub="total records"
+              color="bg-green-50 border-green-100 text-green-900"
+            />
+            <StatCard
+              label="Avg. Confidence"
+              value={`${stats.avgConfidence.toFixed(0)}%`}
+              sub="recognition"
+              color="bg-purple-50 border-purple-100 text-purple-900"
+            />
+            <StatCard
+              label="First / Last"
+              value={stats.firstCheckIn}
+              sub={`Last: ${stats.lastCheckIn}`}
+              color="bg-amber-50 border-amber-100 text-amber-900"
+            />
+          </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="overflow-x-auto">
