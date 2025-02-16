@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(200);
             entity.Property(e => e.PhotoPath).IsRequired();
             entity.Property(e => e.FaceDescriptor).IsRequired();
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<AttendanceRecord>(entity =>

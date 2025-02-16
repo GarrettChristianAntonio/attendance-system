@@ -8,18 +8,21 @@ export const metadata: Metadata = {
 
 export default function NewEmployeePage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-6 sm:py-8 px-4">
+    <div className="py-6 sm:py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold">Register Employee</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Register Employee</h1>
+            <p className="text-sm text-gray-500 mt-1">Capture a photo for facial recognition</p>
+          </div>
           <Link
             href="/employees"
-            className="text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base"
+            className="text-gray-600 hover:text-gray-800 font-medium text-sm transition-colors"
           >
-            &larr; Back to list
+            &larr; Back
           </Link>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <EmployeeForm />
         </div>
       </div>
