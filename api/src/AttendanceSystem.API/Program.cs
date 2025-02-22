@@ -1,4 +1,5 @@
 using AttendanceSystem.API.Data;
+using AttendanceSystem.API.Middleware;
 using AttendanceSystem.API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -9,6 +10,8 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<FaceMatchingService>();
+builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -29,6 +32,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors("AllowFrontend");
+
+app.UseMiddleware<ApiKeyAuthMiddleware>();
 
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
