@@ -13,12 +13,14 @@ public class FaceController : ControllerBase
 {
     private readonly FaceMatchingService _matchingService;
     private readonly AppDbContext _db;
+    private readonly IOrganizationContext _orgContext;
     private static readonly TimeSpan CooldownPeriod = TimeSpan.FromMinutes(5);
 
-    public FaceController(FaceMatchingService matchingService, AppDbContext db)
+    public FaceController(FaceMatchingService matchingService, AppDbContext db, IOrganizationContext orgContext)
     {
         _matchingService = matchingService;
         _db = db;
+        _orgContext = orgContext;
     }
 
     [HttpPost("match")]
@@ -27,7 +29,7 @@ public class FaceController : ControllerBase
         if (dto.Descriptor.Length != 128)
             return BadRequest("Descriptor must be a 128-float array");
 
-        var result = await _matchingService.FindMatchAsync(dto.Descriptor);
+        var result = await _matchingService.FindMatchAsync(dto.Descriptor, _orgContext.OrganizationId);
 
         if (result.IsMatch && result.Employee is not null)
         {

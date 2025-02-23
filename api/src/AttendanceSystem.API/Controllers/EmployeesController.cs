@@ -1,6 +1,7 @@
 using AttendanceSystem.API.Data;
 using AttendanceSystem.API.DTOs;
 using AttendanceSystem.API.Models;
+using AttendanceSystem.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,18 +13,20 @@ public class EmployeesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly IOrganizationContext _orgContext;
 
-    public EmployeesController(AppDbContext db, IWebHostEnvironment env)
+    public EmployeesController(AppDbContext db, IWebHostEnvironment env, IOrganizationContext orgContext)
     {
         _db = db;
         _env = env;
+        _orgContext = orgContext;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<EmployeeDto>>> GetAll()
     {
         var employees = await _db.Employees
-            .Where(e => e.IsActive)
+            .Where(e => e.IsActive && e.OrganizationId == _orgContext.OrganizationId)
             .OrderBy(e => e.Name)
             .Select(e => new EmployeeDto
             {
@@ -43,7 +46,7 @@ public class EmployeesController : ControllerBase
     public async Task<ActionResult<EmployeeDto>> GetById(Guid id)
     {
         var employee = await _db.Employees.FindAsync(id);
-        if (employee is null || !employee.IsActive)
+        if (employee is null || !employee.IsActive || employee.OrganizationId != _orgContext.OrganizationId)
             return NotFound();
 
         return Ok(new EmployeeDto
@@ -73,6 +76,7 @@ public class EmployeesController : ControllerBase
         var employee = new Employee
         {
             Id = Guid.NewGuid(),
+            OrganizationId = _orgContext.OrganizationId,
             Name = name,
             Email = email,
             FaceDescriptor = faceDescriptor,
@@ -118,7 +122,7 @@ public class EmployeesController : ControllerBase
         IFormFile? photo)
     {
         var employee = await _db.Employees.FindAsync(id);
-        if (employee is null || !employee.IsActive)
+        if (employee is null || !employee.IsActive || employee.OrganizationId != _orgContext.OrganizationId)
             return NotFound();
 
         employee.Name = name;
@@ -160,7 +164,7 @@ public class EmployeesController : ControllerBase
     public async Task<IActionResult> Delete(Guid id)
     {
         var employee = await _db.Employees.FindAsync(id);
-        if (employee is null)
+        if (employee is null || employee.OrganizationId != _orgContext.OrganizationId)
             return NotFound();
 
         employee.IsActive = false;

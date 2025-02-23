@@ -22,10 +22,10 @@ public class FaceMatchingService
         _db = db;
     }
 
-    public async Task<FaceMatchResult> FindMatchAsync(float[] descriptor)
+    public async Task<FaceMatchResult> FindMatchAsync(float[] descriptor, Guid organizationId)
     {
         var employees = await _db.Employees
-            .Where(e => e.IsActive && e.FaceDescriptor != "")
+            .Where(e => e.IsActive && e.FaceDescriptor != "" && e.OrganizationId == organizationId)
             .ToListAsync();
 
         Employee? bestMatch = null;
