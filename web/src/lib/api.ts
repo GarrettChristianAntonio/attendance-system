@@ -1,14 +1,23 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+function getApiKey(): string | null {
+  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_API_KEY || null;
+  return localStorage.getItem("apiKey") || process.env.NEXT_PUBLIC_API_KEY || null;
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  const apiKey = getApiKey();
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string>),
+  };
+  if (apiKey) headers["X-Api-Key"] = apiKey;
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      ...options?.headers,
-    },
+    headers,
   });
 
   if (!res.ok) {

@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using AttendanceSystem.API.Data;
 using AttendanceSystem.API.Middleware;
 using AttendanceSystem.API.Services;
@@ -23,6 +24,23 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("api", context =>
+    {
+        var apiKey = context.Request.Headers["X-Api-Key"].ToString();
+        return RateLimitPartition.GetFixedWindowLimiter(
+            apiKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -34,6 +52,7 @@ using (var scope = app.Services.CreateScope())
 app.UseCors("AllowFrontend");
 
 app.UseMiddleware<ApiKeyAuthMiddleware>();
+app.UseRateLimiter();
 
 var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "uploads");
 Directory.CreateDirectory(uploadsPath);
