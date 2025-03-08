@@ -11,6 +11,9 @@ public class AppDbContext : DbContext
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<EmployeeSchedule> EmployeeSchedules => Set<EmployeeSchedule>();
+    public DbSet<AbsenceRecord> AbsenceRecords => Set<AbsenceRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,7 +49,32 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AttendanceRecord>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("OnTime");
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Shift).WithMany().HasForeignKey(e => e.ShiftId);
+        });
+
+        modelBuilder.Entity<Shift>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Color).HasMaxLength(7);
+            entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId);
+        });
+
+        modelBuilder.Entity<EmployeeSchedule>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Shift).WithMany().HasForeignKey(e => e.ShiftId);
+        });
+
+        modelBuilder.Entity<AbsenceRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(20);
+            entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
+            entity.HasOne(e => e.Shift).WithMany().HasForeignKey(e => e.ShiftId);
         });
     }
 }
