@@ -14,13 +14,19 @@ public class FaceController : ControllerBase
     private readonly FaceMatchingService _matchingService;
     private readonly AppDbContext _db;
     private readonly IOrganizationContext _orgContext;
+    private readonly PunctualityService _punctualityService;
     private static readonly TimeSpan CooldownPeriod = TimeSpan.FromMinutes(5);
 
-    public FaceController(FaceMatchingService matchingService, AppDbContext db, IOrganizationContext orgContext)
+    public FaceController(
+        FaceMatchingService matchingService,
+        AppDbContext db,
+        IOrganizationContext orgContext,
+        PunctualityService punctualityService)
     {
         _matchingService = matchingService;
         _db = db;
         _orgContext = orgContext;
+        _punctualityService = punctualityService;
     }
 
     [HttpPost("match")]
@@ -39,12 +45,17 @@ public class FaceController : ControllerBase
 
             if (!recentCheckIn)
             {
+                var now = DateTime.UtcNow;
+                var (status, shiftId) = await _punctualityService.EvaluateCheckIn(result.Employee.Id, now);
+
                 var record = new AttendanceRecord
                 {
                     Id = Guid.NewGuid(),
                     EmployeeId = result.Employee.Id,
-                    CheckInAt = DateTime.UtcNow,
-                    Confidence = result.Distance
+                    ShiftId = shiftId,
+                    CheckInAt = now,
+                    Confidence = result.Distance,
+                    Status = status
                 };
                 _db.AttendanceRecords.Add(record);
                 await _db.SaveChangesAsync();
