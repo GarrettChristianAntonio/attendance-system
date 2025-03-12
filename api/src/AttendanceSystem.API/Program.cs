@@ -13,6 +13,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<FaceMatchingService>();
 builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
+builder.Services.AddScoped<PunctualityService>();
+builder.Services.AddScoped<CheckOutService>();
+builder.Services.AddHostedService<AbsenceDetectionService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
