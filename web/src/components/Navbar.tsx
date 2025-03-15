@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Camera" },
   { href: "/employees", label: "Employees" },
   { href: "/attendance", label: "Attendance" },
+  { href: "/schedules", label: "Schedules" },
 ];
 
 export default function Navbar() {
