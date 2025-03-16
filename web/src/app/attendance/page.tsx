@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { apiFetch, getPhotoUrl } from "@/lib/api";
+import { apiFetch, apiPost, getPhotoUrl } from "@/lib/api";
+import StatusBadge from "@/components/StatusBadge";
 
 interface AttendanceRecord {
   id: string;
@@ -9,7 +10,11 @@ interface AttendanceRecord {
   employeeName: string;
   photoUrl: string | null;
   checkInAt: string;
+  checkOutAt: string | null;
   confidence: number;
+  status: string;
+  shiftName: string | null;
+  shiftColor: string | null;
 }
 
 function StatCard({
@@ -45,7 +50,13 @@ function SkeletonRow() {
         <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
       </td>
       <td className="py-4 px-4">
+        <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+      </td>
+      <td className="py-4 px-4">
         <div className="h-6 w-12 bg-gray-200 rounded animate-pulse" />
+      </td>
+      <td className="py-4 px-4">
+        <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
       </td>
     </tr>
   );
@@ -59,23 +70,32 @@ export default function AttendancePage() {
     return today.toISOString().split("T")[0];
   });
 
-  useEffect(() => {
-    const fetchRecords = async () => {
-      setLoading(true);
-      try {
-        const data = await apiFetch<AttendanceRecord[]>(
-          `/api/attendance?date=${date}`
-        );
-        setRecords(data);
-      } catch (err) {
-        console.error("Failed to fetch attendance:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch<AttendanceRecord[]>(
+        `/api/attendance?date=${date}`
+      );
+      setRecords(data);
+    } catch (err) {
+      console.error("Failed to fetch attendance:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRecords();
   }, [date]);
+
+  const handleCheckOut = async (id: string) => {
+    try {
+      await apiPost(`/api/attendance/${id}/checkout`, {});
+      fetchRecords();
+    } catch (err) {
+      console.error("Failed to check out:", err);
+    }
+  };
 
   const stats = useMemo(() => {
     if (records.length === 0) return null;
@@ -83,24 +103,14 @@ export default function AttendancePage() {
     const avgConfidence =
       records.reduce((sum, r) => sum + Math.max(0, (1 - r.confidence) * 100), 0) /
       records.length;
-    const firstCheckIn = records.length > 0
-      ? new Date(records[records.length - 1].checkInAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "-";
-    const lastCheckIn = records.length > 0
-      ? new Date(records[0].checkInAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "-";
-    return { uniqueEmployees, avgConfidence, firstCheckIn, lastCheckIn };
+    const onTimeCount = records.filter((r) => r.status === "OnTime").length;
+    const lateCount = records.filter((r) => r.status === "Late").length;
+    return { uniqueEmployees, avgConfidence, onTimeCount, lateCount };
   }, [records]);
 
   return (
     <div className="py-6 sm:py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Attendance Log</h1>
@@ -110,12 +120,20 @@ export default function AttendancePage() {
                 : "View daily check-in records"}
             </p>
           </div>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-          />
+          <div className="flex items-center gap-3">
+            <a
+              href="/attendance/summary"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Summary
+            </a>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+            />
+          </div>
         </div>
 
         {!loading && stats && (
@@ -133,16 +151,16 @@ export default function AttendancePage() {
               color="bg-green-50 border-green-100 text-green-900"
             />
             <StatCard
+              label="On Time"
+              value={stats.onTimeCount}
+              sub={`${stats.lateCount} late`}
+              color="bg-emerald-50 border-emerald-100 text-emerald-900"
+            />
+            <StatCard
               label="Avg. Confidence"
               value={`${stats.avgConfidence.toFixed(0)}%`}
               sub="recognition"
               color="bg-purple-50 border-purple-100 text-purple-900"
-            />
-            <StatCard
-              label="First / Last"
-              value={stats.firstCheckIn}
-              sub={`Last: ${stats.lastCheckIn}`}
-              color="bg-amber-50 border-amber-100 text-amber-900"
             />
           </div>
         )}
@@ -153,7 +171,9 @@ export default function AttendancePage() {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Employee</th>
-                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Check-in Time</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Check-in</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Check-out</th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Status</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-700 text-sm">Confidence</th>
                 </tr>
               </thead>
@@ -166,7 +186,7 @@ export default function AttendancePage() {
                   </>
                 ) : records.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="py-12 text-center">
+                    <td colSpan={5} className="py-12 text-center">
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                         <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -197,13 +217,41 @@ export default function AttendancePage() {
                                 {record.employeeName.charAt(0).toUpperCase()}
                               </div>
                             )}
-                            <span className="font-medium text-gray-900">
-                              {record.employeeName}
-                            </span>
+                            <div>
+                              <span className="font-medium text-gray-900">
+                                {record.employeeName}
+                              </span>
+                              {record.shiftName && (
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: record.shiftColor || "#gray" }}
+                                  />
+                                  <span className="text-xs text-gray-500">{record.shiftName}</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="py-4 px-4 text-gray-600 text-sm">
                           {new Date(record.checkInAt).toLocaleTimeString()}
+                        </td>
+                        <td className="py-4 px-4 text-sm">
+                          {record.checkOutAt ? (
+                            <span className="text-gray-600">
+                              {new Date(record.checkOutAt).toLocaleTimeString()}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleCheckOut(record.id)}
+                              className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                            >
+                              Check out
+                            </button>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <StatusBadge status={record.status} />
                         </td>
                         <td className="py-4 px-4">
                           <span

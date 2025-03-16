@@ -49,6 +49,33 @@ export async function apiPostForm<T>(
   });
 }
 
+export async function apiPut<T>(
+  path: string,
+  body: unknown
+): Promise<T> {
+  return apiFetch<T>(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiDelete(path: string): Promise<void> {
+  const apiKey = getApiKey();
+  const headers: Record<string, string> = {};
+  if (apiKey) headers["X-Api-Key"] = apiKey;
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error || `API error: ${res.status}`);
+  }
+}
+
 export function getPhotoUrl(photoPath: string | null | undefined): string | null {
   if (!photoPath) return null;
   return `${API_BASE}${photoPath}`;
