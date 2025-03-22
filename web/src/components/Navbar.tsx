@@ -8,6 +8,7 @@ const links = [
   { href: "/employees", label: "Employees" },
   { href: "/attendance", label: "Attendance" },
   { href: "/schedules", label: "Schedules" },
+  { href: "/dashboard", label: "Dashboard" },
 ];
 
 export default function Navbar() {
