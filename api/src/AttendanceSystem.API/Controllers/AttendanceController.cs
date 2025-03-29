@@ -153,4 +153,29 @@ public class AttendanceController : ControllerBase
 
         return Ok(summary);
     }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> Export(
+        [FromQuery] string? from,
+        [FromQuery] string? to,
+        [FromQuery] string format = "csv",
+        [FromServices] ReportService reportService = null!)
+    {
+        var fromDate = !string.IsNullOrEmpty(from) && DateOnly.TryParse(from, out var f)
+            ? f : DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var toDate = !string.IsNullOrEmpty(to) && DateOnly.TryParse(to, out var t)
+            ? t : DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (format.Equals("pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            var org = await _db.Organizations.FindAsync(_orgContext.OrganizationId);
+            var bytes = await reportService.GeneratePdf(_orgContext.OrganizationId, fromDate, toDate, org?.Name ?? "Organization");
+            return File(bytes, "application/pdf", $"attendance-{fromDate:yyyyMMdd}-{toDate:yyyyMMdd}.pdf");
+        }
+        else
+        {
+            var bytes = await reportService.GenerateCsv(_orgContext.OrganizationId, fromDate, toDate);
+            return File(bytes, "text/csv", $"attendance-{fromDate:yyyyMMdd}-{toDate:yyyyMMdd}.csv");
+        }
+    }
 }
