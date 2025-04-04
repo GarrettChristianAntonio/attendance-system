@@ -16,6 +16,9 @@ builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
 builder.Services.AddScoped<PunctualityService>();
 builder.Services.AddScoped<CheckOutService>();
 builder.Services.AddHostedService<AbsenceDetectionService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddSingleton<WebhookService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<WebhookService>());
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>

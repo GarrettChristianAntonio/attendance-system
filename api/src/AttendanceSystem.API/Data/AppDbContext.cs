@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Shift> Shifts => Set<Shift>();
     public DbSet<EmployeeSchedule> EmployeeSchedules => Set<EmployeeSchedule>();
     public DbSet<AbsenceRecord> AbsenceRecords => Set<AbsenceRecord>();
+    public DbSet<WebhookEndpoint> WebhookEndpoints => Set<WebhookEndpoint>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -75,6 +76,15 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Type).IsRequired().HasMaxLength(20);
             entity.HasOne(e => e.Employee).WithMany().HasForeignKey(e => e.EmployeeId);
             entity.HasOne(e => e.Shift).WithMany().HasForeignKey(e => e.ShiftId);
+        });
+
+        modelBuilder.Entity<WebhookEndpoint>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Url).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Secret).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.Events).HasMaxLength(500);
+            entity.HasOne(e => e.Organization).WithMany().HasForeignKey(e => e.OrganizationId);
         });
     }
 }
