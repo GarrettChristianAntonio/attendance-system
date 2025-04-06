@@ -50,6 +50,12 @@ The system supports **multi-organization tenancy** through API key authenticatio
 - **Responsive UI** — Works on desktop and mobile browsers
 - **Multi-organization support** — Isolated data per organization via API keys
 - **Rate limiting** — 100 requests/minute per API key
+- **Shift scheduling** — Define shifts with grace periods, assign to employees weekly
+- **Punctuality tracking** — Automatic on-time/late/absent status detection
+- **Analytics dashboard** — Weekly trends, top performers, per-employee details
+- **CSV/PDF exports** — Download attendance reports with date range filtering
+- **Embeddable widgets** — iframe-ready check-in camera and status board
+- **Webhooks** — HMAC-signed event notifications for check-in, check-out, absence
 
 ## Tech Stack
 
