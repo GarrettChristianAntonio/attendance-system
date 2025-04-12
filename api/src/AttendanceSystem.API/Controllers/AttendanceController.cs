@@ -154,6 +154,34 @@ public class AttendanceController : ControllerBase
         return Ok(summary);
     }
 
+    [HttpGet("live")]
+    public async Task GetLive([FromQuery] string? apiKey, [FromServices] AttendanceLiveService liveService)
+    {
+        Response.Headers.Append("Content-Type", "text/event-stream");
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+
+        var reader = liveService.Subscribe(_orgContext.OrganizationId);
+        var ct = HttpContext.RequestAborted;
+
+        try
+        {
+            await foreach (var evt in reader.ReadAllAsync(ct))
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    evt.EmployeeName,
+                    photoUrl = evt.PhotoUrl,
+                    evt.Status,
+                    checkInAt = evt.CheckInAt
+                });
+                await Response.WriteAsync($"data: {json}\n\n", ct);
+                await Response.Body.FlushAsync(ct);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> Export(
         [FromQuery] string? from,
