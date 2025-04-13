@@ -4,7 +4,6 @@ using AttendanceSystem.API.Middleware;
 using AttendanceSystem.API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -15,9 +14,10 @@ builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
 builder.Services.AddScoped<PunctualityService>();
 builder.Services.AddScoped<CheckOutService>();
-builder.Services.AddHostedService<AbsenceDetectionService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddHostedService<AbsenceDetectionService>();
 builder.Services.AddSingleton<WebhookService>();
+builder.Services.AddSingleton<AttendanceLiveService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<WebhookService>());
 builder.Services.AddCors(options =>
 {
@@ -47,6 +47,9 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -55,7 +58,15 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors("AllowFrontend");
+
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Attendance System API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseRateLimiter();
@@ -66,6 +77,19 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
+});
+
+app.MapGet("/healthz", async (AppDbContext db) =>
+{
+    try
+    {
+        await db.Database.CanConnectAsync();
+        return Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
+    }
+    catch
+    {
+        return Results.StatusCode(503);
+    }
 });
 
 app.MapControllers();
