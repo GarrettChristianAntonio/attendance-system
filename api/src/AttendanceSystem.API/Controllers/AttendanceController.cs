@@ -22,7 +22,9 @@ public class AttendanceController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<AttendanceDto>>> GetAll(
         [FromQuery] DateTime? date,
-        [FromQuery] Guid? employeeId)
+        [FromQuery] Guid? employeeId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
         var query = _db.AttendanceRecords
             .Include(a => a.Employee)
@@ -42,6 +44,8 @@ public class AttendanceController : ControllerBase
 
         var records = await query
             .OrderByDescending(a => a.CheckInAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(a => new AttendanceDto
             {
                 Id = a.Id,
