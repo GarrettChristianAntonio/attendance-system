@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: ./api/src/AttendanceSystem.API
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - api-data:/app/data
+      - api-uploads:/app/uploads
+    environment:
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/attendance.db
+      - ASPNETCORE_ENVIRONMENT=Production
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:5000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api-data:
+  api-uploads:
