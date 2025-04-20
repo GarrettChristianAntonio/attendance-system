@@ -56,6 +56,10 @@ The system supports **multi-organization tenancy** through API key authenticatio
 - **CSV/PDF exports** — Download attendance reports with date range filtering
 - **Embeddable widgets** — iframe-ready check-in camera and status board
 - **Webhooks** — HMAC-signed event notifications for check-in, check-out, absence
+- **Real-time feed** — Server-Sent Events for live check-in streaming
+- **Swagger/OpenAPI** — Interactive API documentation at /swagger
+- **Docker support** — Dockerfile and docker-compose for containerized deployment
+- **Health check** — GET /healthz endpoint for monitoring
 
 ## Tech Stack
 
