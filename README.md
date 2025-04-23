@@ -13,7 +13,7 @@ Browser (Next.js)                         Server (.NET 9)
 │  - detect face       │   POST /match   │  │ Euclidean dist.  │ │
 │  - extract embedding │                 │  └─────────────────┘ │
 │  ↓                   │ ←────────────── │         ↓            │
-│  Show result         │   { match,      │  SQLite + Files      │
+│  Show result         │   { match,      │  PostgreSQL + Files   │
 │  "Presente! Juan"    │     name,       │  - employees table   │
 └──────────────────────┘     confidence } │  - attendance table  │
                                          │  - photos on disk    │
@@ -67,7 +67,7 @@ The system supports **multi-organization tenancy** through API key authenticatio
 |-------|-----------|
 | **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS v4 |
 | **Backend** | .NET 9, C# 13, Entity Framework Core 9 |
-| **Database** | SQLite (zero-config, file-based) |
+| **Database** | PostgreSQL 16 |
 | **Face Detection** | [@vladmandic/face-api](https://github.com/vladmandic/face-api) (runs in browser) |
 | **ML Models** | SSD MobileNet v1 + FaceLandmark68 + FaceRecognition (~12MB total) |
 | **Auth** | API Key authentication (SHA-256 hashed, per-organization) |
@@ -78,18 +78,43 @@ The system supports **multi-organization tenancy** through API key authenticatio
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - [Node.js](https://nodejs.org/) (v18+)
+- [PostgreSQL 16](https://www.postgresql.org/download/) (or use Docker)
 - A browser with webcam access (Chrome or Edge recommended)
 
-### 1. Start the API
+### Quick Start with Docker
+
+```bash
+docker-compose up -d
+```
+
+This starts PostgreSQL, the API, and the frontend. Open **http://localhost:3000**.
+
+### Manual Setup
+
+#### 1. Start PostgreSQL
+
+Ensure PostgreSQL is running on `localhost:5432`. Create a database named `attendance`:
+
+```bash
+createdb attendance
+```
+
+Or use Docker for just the database:
+
+```bash
+docker-compose up -d postgres
+```
+
+#### 2. Start the API
 
 ```bash
 cd api/src/AttendanceSystem.API
 dotnet run
 ```
 
-The API starts at **http://localhost:5000**. SQLite database is created automatically on first run.
+The API starts at **http://localhost:5000**. Database migrations run automatically on startup.
 
-### 2. Create an Organization
+### 3. Create an Organization
 
 ```bash
 curl -X POST http://localhost:5000/api/organizations/create \
@@ -99,7 +124,7 @@ curl -X POST http://localhost:5000/api/organizations/create \
 
 This returns an API key (shown only once). Save it — you'll need it for all subsequent requests.
 
-### 3. Start the Frontend
+### 4. Start the Frontend
 
 ```bash
 cd web
@@ -116,7 +141,7 @@ Or set the environment variable `NEXT_PUBLIC_API_KEY` before starting the dev se
 
 Open **http://localhost:3000** in your browser.
 
-### 4. Register an Employee
+### 5. Register an Employee
 
 1. Navigate to **Employees → + New Employee**
 2. Enter name and (optionally) email
@@ -124,7 +149,7 @@ Open **http://localhost:3000** in your browser.
 4. Click **Capture Photo** — the system validates exactly one face is detected
 5. Click **Register Employee**
 
-### 5. Test Check-in
+### 6. Test Check-in
 
 1. Go to the **Camera** page (home)
 2. Face the webcam — you should see **"Presente! [Name]"** in green
@@ -218,7 +243,7 @@ attendance-system/
 │       │   ├── OrganizationDtos.cs
 │       │   └── ApiKeyDtos.cs
 │       ├── Data/
-│       │   └── AppDbContext.cs         # EF Core + SQLite
+│       │   └── AppDbContext.cs         # EF Core + PostgreSQL
 │       └── Program.cs                  # CORS, rate limiting, DI
 │
 ├── web/                                # Next.js 15 Frontend
@@ -246,7 +271,7 @@ attendance-system/
 ## Key Design Decisions
 
 - **Client-side ML**: Face detection runs in the browser using WebGL — the server never processes images, only compares number arrays. This makes the backend extremely lightweight.
-- **SQLite**: Zero-config database perfect for single-server deployments. No PostgreSQL/MySQL setup needed.
+- **PostgreSQL**: Production-grade relational database with full ACID compliance, JSON support, and excellent concurrency handling.
 - **128-d descriptors**: Industry-standard face embedding size. Stored as JSON-serialized float arrays in the database.
 - **Threshold 0.55**: Tuned for a balance between false positives and false negatives. Lower = stricter matching.
 - **Dual cooldown**: Client-side Map (instant feedback) + server-side DB check (prevents duplicates even across page refreshes).
