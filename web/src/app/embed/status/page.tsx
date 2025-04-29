@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiFetch, getPhotoUrl } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { getPhotoUrl } from "@/lib/api";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 interface StatusData {
   totalEmployees: number;
@@ -16,11 +19,20 @@ interface StatusData {
 
 export default function EmbedStatusPage() {
   const [data, setData] = useState<StatusData | null>(null);
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
 
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const d = await apiFetch<StatusData>("/api/widget/status");
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${API_BASE}/api/widget/status`, { headers });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const d = await res.json();
         setData(d);
       } catch (err) {
         console.error("Failed to load status:", err);
@@ -29,7 +41,7 @@ export default function EmbedStatusPage() {
     fetchStatus();
     const interval = setInterval(fetchStatus, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   if (!data) {
     return (

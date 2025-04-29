@@ -15,6 +15,7 @@ builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
 builder.Services.AddScoped<PunctualityService>();
 builder.Services.AddScoped<CheckOutService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<EmbedTokenService>();
 builder.Services.AddHostedService<AbsenceDetectionService>();
 builder.Services.AddSingleton<WebhookService>();
 builder.Services.AddSingleton<AttendanceLiveService>();

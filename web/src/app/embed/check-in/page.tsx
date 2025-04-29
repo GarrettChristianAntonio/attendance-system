@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function EmbedCheckInPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<string>("Initializing camera...");
   const [lastMatch, setLastMatch] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
 
   useEffect(() => {
     const startCamera = async () => {
@@ -52,6 +55,9 @@ export default function EmbedCheckInPage() {
         )}
       </div>
       <p className="mt-4 text-sm text-gray-500">{status}</p>
+      {!token && (
+        <p className="mt-2 text-xs text-red-400">No embed token provided. Add ?token=... to the URL.</p>
+      )}
     </div>
   );
 }

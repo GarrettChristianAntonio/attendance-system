@@ -268,6 +268,33 @@ attendance-system/
 └── README.md
 ```
 
+## Embedding
+
+The system supports embeddable widgets via JWT tokens. Parent applications can embed check-in cameras and status boards in iframes.
+
+### 1. Create an Embed Token
+
+```bash
+curl -X POST http://localhost:5000/api/embed/tokens \
+  -H "X-Api-Key: ak_your_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Lobby Kiosk", "scopes": ["embed:checkin", "embed:status"], "expiresInDays": 90}'
+```
+
+### 2. Embed in an iframe
+
+```html
+<iframe src="http://localhost:3000/embed/check-in?token=YOUR_JWT_TOKEN"
+        width="640" height="520" frameborder="0"></iframe>
+
+<iframe src="http://localhost:3000/embed/status?token=YOUR_JWT_TOKEN"
+        width="400" height="600" frameborder="0"></iframe>
+```
+
+**Available scopes**: `embed:checkin`, `embed:status`, `embed:feed`
+
+Embed tokens are scoped — they can only access widget endpoints, not the full API. Tokens can be revoked at any time via `DELETE /api/embed/tokens/{id}`.
+
 ## Key Design Decisions
 
 - **Client-side ML**: Face detection runs in the browser using WebGL — the server never processes images, only compares number arrays. This makes the backend extremely lightweight.
