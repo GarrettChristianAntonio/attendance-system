@@ -8,6 +8,7 @@ obj/
 *.db-shm
 *.db-wal
 uploads/
+TestResults/
 
 # Node
 node_modules/
@@ -29,3 +30,6 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/
